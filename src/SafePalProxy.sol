@@ -57,13 +57,14 @@ contract Proxy {
     ) external ensure(deadline) {
         TransferHelper.safeTransferFrom(tokenIn, msg.sender, Executor, amountIn);
 
-        uint256 amountOutBefore = IERC20(tokenOut).balanceOf(receiver);
+        uint256 amountOutBefore = IERC20(tokenOut).balanceOf(address(this));
 
         (bool success,) = Executor.call(abi.encodePacked(path, amountOutMin));
         require(success, "SF");
 
-        uint256 amountOutAfter = IERC20(tokenOut).balanceOf(receiver);
-        require(amountOutAfter - amountOutBefore >= amountOutMin, "IS");
+        uint256 amountOut = IERC20(tokenOut).balanceOf(address(this)) - amountOutBefore;
+        require(amountOut >= amountOutMin, "IS");
+        TransferHelper.safeTransfer(tokenOut, receiver, amountOut);
     }
 
     // swap eth to token
@@ -80,13 +81,14 @@ contract Proxy {
 
         TransferHelper.safeTransfer(WETH, Executor, amountIn);
 
-        uint256 amountOutBefore = IERC20(tokenOut).balanceOf(receiver);
+        uint256 amountOutBefore = IERC20(tokenOut).balanceOf(address(this));
 
         (bool success,) = Executor.call(abi.encodePacked(path, amountOutMin));
         require(success, "SF");
 
-        uint256 amountOutAfter = IERC20(tokenOut).balanceOf(receiver);
-        require(amountOutAfter - amountOutBefore >= amountOutMin, "IS");
+        uint256 amountOut = IERC20(tokenOut).balanceOf(address(this)) - amountOutBefore;
+        require(amountOut >= amountOutMin, "IS");
+        TransferHelper.safeTransfer(tokenOut, receiver, amountOut);
     }
 
     // swap token to eth
