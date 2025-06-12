@@ -63,8 +63,12 @@ contract Proxy {
         require(success, "SF");
 
         uint256 amountOut = IERC20(tokenOut).balanceOf(address(this)) - amountOutBefore;
-        require(amountOut >= amountOutMin, "IS");
+        require(amountOut >= amountOutMin, "IS1");
+
+        // maybe token transfer fee
+        amountOutBefore = IERC20(tokenOut).balanceOf(receiver);
         TransferHelper.safeTransfer(tokenOut, receiver, amountOut);
+        require(IERC20(tokenOut).balanceOf(receiver) - amountOutBefore >= amountOutMin, "IS2");
     }
 
     // swap eth to token
@@ -87,8 +91,12 @@ contract Proxy {
         require(success, "SF");
 
         uint256 amountOut = IERC20(tokenOut).balanceOf(address(this)) - amountOutBefore;
-        require(amountOut >= amountOutMin, "IS");
+        require(amountOut >= amountOutMin, "IS1");
+
+        // maybe token transfer fee
+        amountOutBefore = IERC20(tokenOut).balanceOf(receiver);
         TransferHelper.safeTransfer(tokenOut, receiver, amountOut);
+        require(IERC20(tokenOut).balanceOf(receiver) - amountOutBefore >= amountOutMin, "IS2");
     }
 
     // swap token to eth
