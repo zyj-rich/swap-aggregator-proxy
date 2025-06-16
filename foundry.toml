@@ -3,4 +3,19 @@ src = "src"
 out = "out"
 libs = ["lib"]
 
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config
+
+evm_version = "shanghai"
+
+[profile.default.rpc_endpoints]
+mainnet = "https://eth-mainnet.alchemyapi.io/v2/KFyHOeqwGCp4EGnevZmXenasqDfNsmXN"
+# mainnet = "https://eth.rpc.blxrbdn.com"
+
+bsc = "https://bsc.publicnode.com/"
+# bsc = "https://divine-black-wind.bsc.discover.quiknode.pro/64ab050694137dfcbf4c20daec2e94dc515c1d60/"
+# bsc = "https://bscrpc.com"
+# bsc = "http://localhost:18545"
+
+matic = "https://rpc.ankr.com/polygon"
+
+base = "https://mainnet.base.org"
