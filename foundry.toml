@@ -8,11 +8,9 @@ libs = ["lib"]
 evm_version = "shanghai"
 
 [profile.default.rpc_endpoints]
-mainnet = "https://eth-mainnet.alchemyapi.io/v2/KFyHOeqwGCp4EGnevZmXenasqDfNsmXN"
 # mainnet = "https://eth.rpc.blxrbdn.com"
 
 bsc = "https://bsc.publicnode.com/"
-# bsc = "https://divine-black-wind.bsc.discover.quiknode.pro/64ab050694137dfcbf4c20daec2e94dc515c1d60/"
 # bsc = "https://bscrpc.com"
 # bsc = "http://localhost:18545"
 
