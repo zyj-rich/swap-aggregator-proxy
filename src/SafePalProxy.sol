@@ -37,7 +37,7 @@ contract Proxy {
     }
 
     receive() external payable {
-        assert(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
+        require(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
     }
 
     modifier ensure(uint256 deadline) {
