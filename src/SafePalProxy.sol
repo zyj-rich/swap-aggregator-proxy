@@ -4,22 +4,44 @@ pragma solidity ^0.8.0;
 import {TransferHelper} from "./libraries/SafeTransfer.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IWETH.sol";
-
+import "./interfaces/ISwapAggregatorExecutor.sol";
 
 // notice: external contract
 contract Proxy {
     address public immutable WETH;
     address public immutable Owner;
-    address private Executor;
+    bool public Pause;
+    address public Executor;
 
-    constructor(address _WETH, address _Owner,address _Executor) {
+    constructor(address _WETH, address _Owner, address _Executor) {
         WETH = _WETH;
         Owner = _Owner;
         Executor = _Executor;
+        Pause = false;
     }
 
     modifier onlyOwner() {
         require(msg.sender == Owner, "WL");
+        _;
+    }
+
+    modifier ensure(uint256 deadline) {
+        require(deadline >= block.timestamp, "EXPIRED");
+        _;
+    }
+
+    modifier verifySelector(bytes calldata path) {
+        require(path.length >= 4, "path too short");
+        bytes4 selector;
+        assembly {
+            selector := calldataload(path.offset)
+        }
+        require(ISwapAggregatorExecutor(Executor).executeSwapSelector() == selector, "CS");
+        _;
+    }
+
+    modifier whenNoPause() {
+        require(!Pause, "Pause");
         _;
     }
 
@@ -36,13 +58,12 @@ contract Proxy {
         Executor = _executor;
     }
 
-    receive() external payable {
-        require(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
+    function setPause(bool pause) external onlyOwner {
+        Pause = pause;
     }
 
-    modifier ensure(uint256 deadline) {
-        require(deadline >= block.timestamp, "EXPIRED");
-        _;
+    receive() external payable {
+        assert(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
     }
 
     // swap token to token
@@ -54,7 +75,8 @@ contract Proxy {
         address receiver,
         bytes calldata path,
         uint256 deadline
-    ) external ensure(deadline) {
+    ) external ensure(deadline) verifySelector(path) whenNoPause {
+        require(amountOutMin > 0, "amountOutMin less than zero");
         TransferHelper.safeTransferFrom(tokenIn, msg.sender, Executor, amountIn);
 
         uint256 amountOutBefore = IERC20(tokenOut).balanceOf(address(this));
@@ -65,10 +87,12 @@ contract Proxy {
         uint256 amountOut = IERC20(tokenOut).balanceOf(address(this)) - amountOutBefore;
         require(amountOut >= amountOutMin, "IS1");
 
-        // maybe token transfer fee
-        amountOutBefore = IERC20(tokenOut).balanceOf(receiver);
-        TransferHelper.safeTransfer(tokenOut, receiver, amountOut);
-        require(IERC20(tokenOut).balanceOf(receiver) - amountOutBefore >= amountOutMin, "IS2");
+        {
+            // maybe token transfer fee
+            amountOutBefore = IERC20(tokenOut).balanceOf(receiver);
+            TransferHelper.safeTransfer(tokenOut, receiver, amountOut);
+            require(IERC20(tokenOut).balanceOf(receiver) - amountOutBefore >= amountOutMin, "IS2");
+        }
     }
 
     // swap eth to token
@@ -79,7 +103,8 @@ contract Proxy {
         address receiver,
         bytes calldata path,
         uint256 deadline
-    ) external payable ensure(deadline) {
+    ) external payable ensure(deadline) verifySelector(path) whenNoPause {
+        require(amountOutMin > 0, "amountOutMin less than zero");
         require(amountIn == msg.value, "SV");
         IWETH(WETH).deposit{value: amountIn}();
 
@@ -94,9 +119,11 @@ contract Proxy {
         require(amountOut >= amountOutMin, "IS1");
 
         // maybe token transfer fee
-        amountOutBefore = IERC20(tokenOut).balanceOf(receiver);
-        TransferHelper.safeTransfer(tokenOut, receiver, amountOut);
-        require(IERC20(tokenOut).balanceOf(receiver) - amountOutBefore >= amountOutMin, "IS2");
+        {
+            amountOutBefore = IERC20(tokenOut).balanceOf(receiver);
+            TransferHelper.safeTransfer(tokenOut, receiver, amountOut);
+            require(IERC20(tokenOut).balanceOf(receiver) - amountOutBefore >= amountOutMin, "IS2");
+        }
     }
 
     // swap token to eth
@@ -107,7 +134,8 @@ contract Proxy {
         address receiver,
         bytes calldata path,
         uint256 deadline
-    ) external ensure(deadline) {
+    ) external ensure(deadline) verifySelector(path) whenNoPause {
+        require(amountOutMin > 0, "amountOutMin less than zero");
         TransferHelper.safeTransferFrom(tokenIn, msg.sender, Executor, amountIn);
 
         uint256 amountOutBefore = IERC20(WETH).balanceOf(address(this));
@@ -117,9 +145,10 @@ contract Proxy {
 
         uint256 amountOut = IERC20(WETH).balanceOf(address(this)) - amountOutBefore;
         require(amountOut >= amountOutMin, "IS");
-
-        IWETH(WETH).withdraw(amountOut);
-        (success,) = receiver.call{value: amountOut}("");
-        require(success, "ES");
+        {
+            IWETH(WETH).withdraw(amountOut);
+            (success,) = receiver.call{value: amountOut}("");
+            require(success, "ES");
+        }
     }
 }
