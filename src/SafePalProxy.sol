@@ -93,8 +93,8 @@ contract Proxy {
     ) external ensure(deadline) verifySelector(path) whenNoPause {
         require(amountOutMin > 0, "amountOutMin less than zero");
 
-        uint256 amountOutBefore = IERC20(tokenOut).balanceOf(address(this));
         TransferHelper.safeTransferFrom(tokenIn, msg.sender, Executor, amountIn);
+        uint256 amountOutBefore = IERC20(tokenOut).balanceOf(address(this));
 
         (bool success,) = Executor.call(abi.encodePacked(path, amountOutMin));
         require(success, "SF");
@@ -123,8 +123,8 @@ contract Proxy {
         require(amountIn == msg.value, "SV");
         IWETH(WETH).deposit{value: amountIn}();
 
-        uint256 amountOutBefore = IERC20(tokenOut).balanceOf(address(this));
         TransferHelper.safeTransfer(WETH, Executor, amountIn);
+        uint256 amountOutBefore = IERC20(tokenOut).balanceOf(address(this));
 
         (bool success,) = Executor.call(abi.encodePacked(path, amountOutMin));
         require(success, "SF");
@@ -151,8 +151,8 @@ contract Proxy {
     ) external ensure(deadline) verifySelector(path) whenNoPause {
         require(amountOutMin > 0, "amountOutMin less than zero");
 
-        uint256 amountOutBefore = IERC20(WETH).balanceOf(address(this));
         TransferHelper.safeTransferFrom(tokenIn, msg.sender, Executor, amountIn);
+        uint256 amountOutBefore = IERC20(WETH).balanceOf(address(this));
 
         (bool success,) = Executor.call(abi.encodePacked(path, amountOutMin));
         require(success, "SF");
