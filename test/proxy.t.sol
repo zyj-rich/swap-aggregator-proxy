@@ -17,6 +17,7 @@ contract SafePalBscTest is Test {
         );
 
     function testCommitOwnerCanSetUnconfirmedExecutor() public {
+        //step : commit
         vm.prank(commitOwner);
         proxy.setExecutor(newExecutor);
 
