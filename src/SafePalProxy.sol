@@ -11,13 +11,34 @@ contract Proxy {
     address public immutable WETH;
     address public immutable Owner;
     bool public Pause;
+    //Multiple signatures
+    address public immutable AuthorCommit;
+    address public immutable AuthorConfirm;
     address public Executor;
+    address public ExecutorCommit;
 
-    constructor(address _WETH, address _Owner, address _Executor) {
+    constructor(address _WETH, address _Owner, address _AuthorCommit, address _AuthorConfirm ,address _Executor) {
         WETH = _WETH;
         Owner = _Owner;
         Executor = _Executor;
+        AuthorCommit = _AuthorCommit;
+        AuthorConfirm = _AuthorConfirm;
+        ExecutorCommit = address(0);
         Pause = false;
+    }
+
+    //Multiple signatures
+    function setExecutor(address _executor) external {
+        require(_executor != address(0), "Zero executor address");
+        if (msg.sender == AuthorCommit) {
+            ExecutorCommit = _executor;
+        }else if (msg.sender == AuthorConfirm) {
+            require(ExecutorCommit == _executor, "Executor inconsistent");
+            Executor = ExecutorCommit;
+            ExecutorCommit = address(0);
+        }else {
+            revert("Auth failed");
+        }
     }
 
     modifier onlyOwner() {
@@ -53,11 +74,6 @@ contract Proxy {
         TransferHelper.safeTransferETH(Owner, value);
     }
 
-    function setExecutor(address _executor) external onlyOwner {
-        require(_executor != address(0), "Invalid executor address");
-        Executor = _executor;
-    }
-
     function setPause(bool pause) external onlyOwner {
         Pause = pause;
     }
@@ -77,9 +93,9 @@ contract Proxy {
         uint256 deadline
     ) external ensure(deadline) verifySelector(path) whenNoPause {
         require(amountOutMin > 0, "amountOutMin less than zero");
-        TransferHelper.safeTransferFrom(tokenIn, msg.sender, Executor, amountIn);
 
         uint256 amountOutBefore = IERC20(tokenOut).balanceOf(address(this));
+        TransferHelper.safeTransferFrom(tokenIn, msg.sender, Executor, amountIn);
 
         (bool success,) = Executor.call(abi.encodePacked(path, amountOutMin));
         require(success, "SF");
@@ -108,9 +124,8 @@ contract Proxy {
         require(amountIn == msg.value, "SV");
         IWETH(WETH).deposit{value: amountIn}();
 
-        TransferHelper.safeTransfer(WETH, Executor, amountIn);
-
         uint256 amountOutBefore = IERC20(tokenOut).balanceOf(address(this));
+        TransferHelper.safeTransfer(WETH, Executor, amountIn);
 
         (bool success,) = Executor.call(abi.encodePacked(path, amountOutMin));
         require(success, "SF");
@@ -136,9 +151,9 @@ contract Proxy {
         uint256 deadline
     ) external ensure(deadline) verifySelector(path) whenNoPause {
         require(amountOutMin > 0, "amountOutMin less than zero");
-        TransferHelper.safeTransferFrom(tokenIn, msg.sender, Executor, amountIn);
 
         uint256 amountOutBefore = IERC20(WETH).balanceOf(address(this));
+        TransferHelper.safeTransferFrom(tokenIn, msg.sender, Executor, amountIn);
 
         (bool success,) = Executor.call(abi.encodePacked(path, amountOutMin));
         require(success, "SF");
