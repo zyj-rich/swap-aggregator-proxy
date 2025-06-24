@@ -11,31 +11,30 @@ contract Proxy {
     address public immutable WETH;
     address public immutable Owner;
     bool public Pause;
-    //Multiple signatures
-    address public immutable AuthorCommit;
-    address public immutable AuthorConfirm;
-    address public Executor;
-    address public ExecutorCommit;
 
-    constructor(address _WETH, address _Owner, address _AuthorCommit, address _AuthorConfirm ,address _Executor) {
+    address public immutable CommitOwner;
+    address public immutable ConfirmOwner;
+    address public Executor;
+    address public UnConfirmExecutor;
+
+    constructor(address _WETH, address _Owner, address _CommitOwner, address _ConfirmOwner ,address _Executor) {
         WETH = _WETH;
         Owner = _Owner;
         Executor = _Executor;
-        AuthorCommit = _AuthorCommit;
-        AuthorConfirm = _AuthorConfirm;
-        ExecutorCommit = address(0);
+        CommitOwner = _CommitOwner;
+        ConfirmOwner = _ConfirmOwner;
+        UnConfirmExecutor = address(0);
         Pause = false;
     }
 
-    //Multiple signatures
     function setExecutor(address _executor) external {
         require(_executor != address(0), "Zero executor address");
-        if (msg.sender == AuthorCommit) {
-            ExecutorCommit = _executor;
-        }else if (msg.sender == AuthorConfirm) {
-            require(ExecutorCommit == _executor, "Executor inconsistent");
-            Executor = ExecutorCommit;
-            ExecutorCommit = address(0);
+        if (msg.sender == CommitOwner) {
+            UnConfirmExecutor = _executor;
+        }else if (msg.sender == ConfirmOwner) {
+            require(UnConfirmExecutor == _executor, "Executor inconsistent");
+            Executor = UnConfirmExecutor;
+            UnConfirmExecutor = address(0);
         }else {
             revert("Auth failed");
         }
@@ -79,7 +78,7 @@ contract Proxy {
     }
 
     receive() external payable {
-        assert(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
+        require(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
     }
 
     // swap token to token
